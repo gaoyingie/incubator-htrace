@@ -341,6 +341,9 @@ extern  "C" {
      *                      Then the scope and the span will be freed.
      */
     void htrace_scope_close(struct htrace_scope *scope);
+    const char *get_span_id(struct htrace_scope *scope, char *str, int len);
+    struct htrace_scope* htrace_start_span_from_id(struct htracer *tracer,
+                      struct htrace_sampler *sampler, const char *desc, const char *id);
 
 #pragma GCC visibility pop // End publicly visible symbols
 

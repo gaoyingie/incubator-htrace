@@ -37,6 +37,11 @@
  *
  * Implementation of HTrace scopes.
  */
+const char *get_span_id(struct htrace_scope *scope, char *str, int len)
+{
+    htrace_span_id_to_str(&scope->span->span_id, str, len);
+    return str;
+}
 
 struct htrace_scope* htrace_start_span(struct htracer *tracer,
         struct htrace_sampler *sampler, const char *desc)
@@ -62,6 +67,63 @@ struct htrace_scope* htrace_start_span(struct htracer *tracer,
     } else {
         htrace_span_id_generate(&span_id, tracer->rnd,
                                 &cur_scope->span->span_id);
+    }
+    span = htrace_span_alloc(desc, now_ms(tracer->lg), &span_id);
+    if (!span) {
+        htrace_log(tracer->lg, "htrace_span_alloc(desc=%s): OOM\n", desc);
+        return NULL;
+    }
+    scope = malloc(sizeof(*scope));
+    if (!scope) {
+        htrace_span_free(span);
+        htrace_log(tracer->lg, "htrace_start_span(desc=%s): OOM\n", desc);
+        return NULL;
+    }
+    scope->tracer = tracer;
+    scope->span = span;
+
+    // Search enclosing trace scopes for the first one that hasn't disowned
+    // its trace span.
+    for (pscope = cur_scope; pscope; pscope = pscope->parent) {
+        struct htrace_span *pspan = pscope->span;
+        if (pspan) {
+            span->parent.single = pspan->span_id;
+            span->num_parents = 1;
+            break;
+        }
+        pscope = pscope->parent;
+    }
+    if (htracer_push_scope(tracer, cur_scope, scope) != 0) {
+        htrace_span_free(span);
+        free(scope);
+        return NULL;
+    }
+    return scope;
+}
+struct htrace_scope* htrace_start_span_from_id(struct htracer *tracer,
+        struct htrace_sampler *sampler, const char *desc, const char *id)
+{
+    struct htrace_scope *cur_scope, *scope = NULL, *pscope;
+    struct htrace_span *span = NULL;
+    struct htrace_span_id span_id;
+    char err[128] = {0};
+    htrace_span_id_parse(&span_id, id, err, 127);
+    if(err[0])
+        return NULL;
+
+    // Validate the description string.  This ensures that it doesn't have
+    // anything silly in it like embedded double quotes, backslashes, or control
+    // characters.
+    if (!validate_json_string(tracer->lg, desc)) {
+        htrace_log(tracer->lg, "htrace_span_alloc(desc=%s): invalid "
+                   "description string.\n", desc);
+        return NULL;
+    }
+    cur_scope = htracer_cur_scope(tracer);
+    if ((!cur_scope) || (!cur_scope->span)) {
+        if (!sampler->ty->next(sampler)) {
+            return NULL;
+        }
     }
     span = htrace_span_alloc(desc, now_ms(tracer->lg), &span_id);
     if (!span) {
