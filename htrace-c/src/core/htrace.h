@@ -342,6 +342,7 @@ extern  "C" {
      */
     void htrace_scope_close(struct htrace_scope *scope);
     const char *get_span_id(struct htrace_scope *scope, char *str, int len);
+    int set_span_id(struct htrace_scope *scope, char *str);
     struct htrace_scope* htrace_start_span_from_id(struct htracer *tracer,
                       struct htrace_sampler *sampler, const char *desc, const char *id);
 

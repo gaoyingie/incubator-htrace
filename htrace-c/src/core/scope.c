@@ -42,6 +42,14 @@ const char *get_span_id(struct htrace_scope *scope, char *str, int len)
     htrace_span_id_to_str(&scope->span->span_id, str, len);
     return str;
 }
+int set_span_id(struct htrace_scope *scope, char *str)
+{
+    char err[128] = {0};
+    htrace_span_id_parse(&scope->span->span_id, str, err, 127);
+    if(err[0])
+        return 1;
+    return 0;
+}
 
 struct htrace_scope* htrace_start_span(struct htracer *tracer,
         struct htrace_sampler *sampler, const char *desc)
