@@ -22,6 +22,7 @@
 
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 set(CMAKE_BUILD_TYPE, Release)  # Default to release builds
+add_definitions("-fPIC")
 
 # Define "make check" as an alias for "make test."
 add_custom_target(check COMMAND ctest)
