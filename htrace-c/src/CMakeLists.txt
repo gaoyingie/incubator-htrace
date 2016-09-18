@@ -119,6 +119,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 
 # The production version of the library, which exposes only the public API.
 add_library(htrace SHARED ${SRC_ALL})
+add_library(htrace_static STATIC ${SRC_ALL})
+SET_TARGET_PROPERTIES(htrace_static PROPERTIES OUTPUT_NAME "htrace")
 target_link_libraries(htrace ${DEPS_ALL})
 # Set version 4.2.0
 set(HTRACE_VERSION_MAJOR "4")
@@ -219,4 +221,5 @@ add_utest(time-unit
 # Install libhtrace.so and htrace.h.
 # These are the only build products that external users can consume.
 install(TARGETS htrace DESTINATION lib)
+install(TARGETS htrace_static DESTINATION lib)
 install(FILES ${CMAKE_SOURCE_DIR}/core/htrace.h DESTINATION include)
